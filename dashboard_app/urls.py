@@ -1,0 +1,34 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('index/', views.index, name='index'),
+    path('add_group/', views.add_group, name='add_group'),
+    path('add_group_form/', views.add_group_form, name='add_group_form'),
+    path('add_member/', views.add_member, name='add_member'),
+    path('add_member_form/', views.add_member_form, name='add_member_form'),
+    path('show_groups/', views.show_groups, name='show_groups'),
+    path('activate_group/<int:group_id>/', views.activate_group, name='activate_group'),
+    path('deactivate_group/<int:group_id>/', views.deactivate_group, name='deactivate_group'),
+    path('delete_group/<int:group_id>/', views.delete_group, name='delete_group'),
+    path('edit_group/<int:group_id>/', views.edit_group, name='edit_group'),
+    path('update_group/<int:group_id>/', views.update_group, name='update_group'),
+    path('show_messages/', views.show_messages, name='show_messages'),
+    path('show_members/', views.show_members, name='show_members'),
+    path('deactivate_member/<int:member_id>/', views.deactivate_member, name='deactivate_member'),
+    path('activate_member/<int:member_id>/', views.activate_member, name='activate_member'),
+    path('delete_member/<int:member_id>/', views.delete_member, name='delete_member'),
+    path('edit_member/<int:member_id>/', views.edit_member, name='edit_member'),
+    path('update_member/<int:member_id>/', views.update_member, name='update_member'),
+    path('add_message/', views.add_message, name='add_message'),
+    path('add_message_form/', views.add_message_form, name='add_message_form'),
+    path('deactivate_message/<int:message_id>/', views.deactivate_message, name='deactivate_message'),
+    path('activate_message/<int:message_id>/', views.activate_message, name='activate_message'),
+    path('delete_message/<int:message_id>/', views.delete_message, name='delete_message'),
+    path('edit_message/<int:message_id>/', views.edit_message, name='edit_message'),
+    path('update_message/<int:message_id>/', views.update_message, name='update_message'),
+    path('login/', views.login, name='login'),
+    path('logout/', views.logout, name='logout'),
+    path('data_table_group/', views.show_data_table_group, name='data_table_group'),
+
+]
