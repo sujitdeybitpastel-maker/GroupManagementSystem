@@ -1047,6 +1047,7 @@ def update_message(request, message_id):
         return redirect('show_messages')
     return HttpResponse("Invalid request method.")
 
+# Add here the login authentication system
 def login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
