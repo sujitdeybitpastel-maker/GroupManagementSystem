@@ -40,6 +40,8 @@ def index(request):
     return render(request, 'index.html', contexts)
 # Django ORM is not added here
 def show_groups(request):
+    if not request.session.get('member_id'):
+        return redirect('login')
     query = request.GET.get('group_search', '')
     with connection.cursor() as cursor:
         if query:
@@ -72,6 +74,8 @@ def show_groups(request):
 
 
 def add_group_form(request):
+    if not request.session.get('member_id'):
+        return redirect('login')
     if request.method == 'POST':
         name = request.POST.get('name')
         platform = request.POST.get('platform')
@@ -122,10 +126,14 @@ def add_group_form(request):
 
 
 def add_group(request):
+    if not request.session.get('member_id'):
+        return redirect('login')
     return render(request, 'add_group.html')
 
 
 def delete_group(request, group_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     group = get_object_or_404(Group, id=group_id)
     group.status = 5
     group.save()
@@ -135,6 +143,8 @@ def delete_group(request, group_id):
 
 #  Django ORM is not added here
 def edit_group(request, group_id): # Fetch group details and render edit form
+    if not request.session.get('member_id'):
+        return redirect('login')
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name, platform, group_type FROM dashboard_app_group WHERE id = %s", [group_id])
         row = cursor.fetchone()
@@ -149,6 +159,8 @@ def edit_group(request, group_id): # Fetch group details and render edit form
             return HttpResponse("Group not found.")
 #Add some logic to update the group details // Django ORM is not added here
 def update_group(request, group_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
 
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -201,6 +213,8 @@ def update_group(request, group_id):
         return HttpResponse("Invalid request method.")
  
 def add_member_form(request):
+    if not request.session.get('member_id'):
+        return redirect('login')
     if request.method == 'POST':
         name = request.POST.get('name')
         phone_number = request.POST.get('phone')
@@ -286,6 +300,8 @@ def add_member_form(request):
         return HttpResponse("Invalid request method.")
 
 def add_member(request):
+    if not request.session.get('member_id'):
+        return redirect('login')
     all_entries = Group.objects.exclude(status=5).values_list("id", "name", "platform", "group_type")
     group_id_validation = list(Group.objects.exclude(status=5).values_list("id", flat=True))
     group_id_validation = [str(i) for i in Group.objects.exclude(status=5).values_list("id", flat=True)]
@@ -306,6 +322,8 @@ def add_member(request):
     return render(request, "add_member.html", context)
 
 def show_members(request):
+    if not request.session.get('member_id'):
+        return redirect('login')
     memberships = memberships = GroupMemberships.objects.select_related('member', 'group') \
     .exclude(status=5)
 
@@ -338,6 +356,8 @@ def show_members(request):
     return render(request, "data_table_member.html", {"members": members})
 
 def activate_member(request, member_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     member = get_object_or_404(Member, id=member_id)
     member.status = 1
     member.save()
@@ -349,6 +369,8 @@ def activate_member(request, member_id):
 
 
 def deactivate_member(request, member_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     member = get_object_or_404(Member, id=member_id)
     member.status = 0
     member.save()
@@ -360,6 +382,8 @@ def deactivate_member(request, member_id):
 
 
 def delete_member(request, member_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     member = get_object_or_404(Member, id=member_id)
     member.status = 5
     member.save()
@@ -371,6 +395,8 @@ def delete_member(request, member_id):
 
 
 def edit_member(request, member_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     #print("-----------member_id----------", member_id)
     member = get_object_or_404(Member, id = member_id)
     member_groups = GroupMemberships.objects.filter(
@@ -414,6 +440,8 @@ def edit_member(request, member_id):
 
 
 def update_member(request, member_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     print("-----------member_id in update----------", member_id)
     
     if request.method == 'POST':
@@ -792,6 +820,8 @@ def update_member(request, member_id):
 def show_messages(request):
     if not request.session.get('member_id'):
         return redirect('login')
+    if not request.session.get('member_id'):
+        return redirect('login')
     messages_1 = (
         Message.objects
         .select_related("group", "sender")  # performs LEFT JOINs efficiently
@@ -1024,7 +1054,7 @@ def login(request):
 
         try:
             user = Member.objects.get(username=username, phone_number=phone_no, status=1)
-        except Members.DoesNotExist:
+        except Member.DoesNotExist:
             messages.warning(request, "Invalid username or phone number.")
             return redirect('login')
 
@@ -1044,6 +1074,8 @@ def logout(request):
     return render(request, 'login.html')
 
 def show_data_table_group(request):
+    if not request.session.get('member_id'):
+        return redirect('login')
     with connection.cursor() as cursor:
         cursor.execute("SELECT id, name, platform, group_type, added_time, status FROM dashboard_app_group where status != 5")
         rows = cursor.fetchall()
@@ -1065,6 +1097,8 @@ def show_data_table_group(request):
     return render(request, 'data_table_group.html', {'groups': groups})
 
 def activate_group(request, group_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     group = get_object_or_404(Group, id=group_id)
     group.status = 1
     group.save()
@@ -1072,6 +1106,8 @@ def activate_group(request, group_id):
     return redirect('data_table_group')
 
 def deactivate_group(request, group_id):
+    if not request.session.get('member_id'):
+        return redirect('login')
     group = get_object_or_404(Group, id=group_id)
     group.status = 0
     group.save()
