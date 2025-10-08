@@ -263,7 +263,7 @@ def add_member_form(request):
             else:
                 
                 groups = Group.objects.filter(id__in=group_ids)
-                platform = [g.platform for g in groups]
+                platform = list(set([g.platform for g in groups]))
                 last_id = Member.objects.aggregate(max_id=models.Max('id'))['max_id'] or 0
                 new_id = last_id + 1
                 Member.objects.create(
@@ -462,7 +462,7 @@ def update_member(request, member_id):
         ).values_list("group_id", flat=True))
         #print("---------------Existing--------------------",existing_groups)
         groups = Group.objects.filter(id__in=selected_groups)
-        platform = [g.platform for g in groups]
+        platform = list(set([g.platform for g in groups]))
 
         #print("after post form UI",username, phone_number)
 

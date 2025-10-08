@@ -1,5 +1,6 @@
 # models.py
 from django.db import models
+from django.db.models import JSONField
 
 class Group(models.Model):
     id = models.IntegerField(primary_key=True)
@@ -23,7 +24,7 @@ class Member(models.Model):
     phone_number = models.CharField(max_length=50, null=True, blank=True)
     email = models.EmailField(null=True, blank=True)
     username = models.CharField(max_length=255)
-    platforms = models.CharField(max_length=255)
+    platforms = JSONField() # Change the data filed use JSONB
     last_updated_time = models.DateTimeField(auto_now=True)
     added_time = models.DateTimeField(auto_now_add=True)
     status = models.IntegerField(default=1)  # 1=active, 0=inactive, 5=deleted
