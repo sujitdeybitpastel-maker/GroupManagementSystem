@@ -1053,21 +1053,36 @@ def login(request):
         phone_no = request.POST.get('phone_no')
 
         try:
+            # Try to get an active user
             user = Member.objects.get(username=username, phone_number=phone_no, status=1)
+            print(user.full_name)
         except Member.DoesNotExist:
-            messages.warning(request, "Invalid username or phone number.")
-            return redirect('login')
+            # Check if user exists but is deleted
+            if Member.objects.filter(username=username, phone_number=phone_no, status=5).exists():
+                messages.warning(request, "User is Deleted.")
+                return redirect('login')
+            # Check if user exists but is inactive
+            elif Member.objects.filter(username=username, phone_number=phone_no, status=0).exists():
+                messages.warning(request, "User is Inactive.")
+                return redirect('login')
+            else:
+                # User does not exist at all
+                messages.warning(request, "Invalid username or phone number.")
+                return redirect('login')
+
+            
 
         #Store session
         request.session['member_id'] = user.id
         request.session['username'] = user.username
+        request.session['full_name'] = user.full_name
+        request.session['phone_no'] = user.phone_number
 
-        messages.success(request, f"Hi Welcome {user.username}!")
+        messages.success(request, f"Hi Welcome {user.full_name}!")
         return redirect('index')
 
     return render(request, 'login.html')
-
-
+    
 
 def logout(request):
     auth.logout(request)
