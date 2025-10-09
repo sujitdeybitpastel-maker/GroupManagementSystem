@@ -53,7 +53,7 @@
                     <th>Groups</th>
                     <th>Platform</th>
                     <th>Sender Name</th>
-                    <th>Phone Number</th>
+                    <!-- <th>Phone Number</th> -->
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -62,11 +62,31 @@
                   {% for message in messages_final %}
                     {% if message.status != 5 %}
                     <tr>
-                      <td>{{ message.message }}</td>
+                      <td style="max-width: 35ch; word-break: break-word;">
+                        {%if message.message %}
+                          {{ message.message }} <br>
+                        {%else%}
+                          <p style="color: red; margin: 5px 0;"> No Message Available</p>
+                        {%endif%}
+
+                        {% if message.media_url %}
+                          <ul style="padding-left: 20px; margin: 5px 0;">
+                            {% for file in message.media_url %}
+                              <li>
+                                <a href="{{ message.MEDIA_URL }}{{ file }}" target="_blank">
+                                  {{ file|slice:"8:" }}
+                                </a>
+                              </li>
+                            {% endfor %}
+                          </ul>
+                        {% else %}
+                          <p style="color: red; margin: 5px 0;">No media available</p>
+                        {% endif %}
+                      </td>
                       <td>{{ message.group_name }}</td>
                       <td>{{ message.platform }}</td>
                       <td>{{ message.sender_name }}</td>
-                      <td>{{ message.phone_number }}</td>
+                      <!-- <td>{{ message.phone_number }}</td> -->
                       <td>
                         {% if message.status == 1 %}
                           <a href="/deactivate_message/{{ message.id }}" class="btn btn-success btn-sm">Activate</a>
@@ -92,7 +112,7 @@
                     <th>Groups</th>
                     <th>Platform</th>
                     <th>Sender Name</th>
-                    <th>Phone Number</th>
+                    <!-- <th>Phone Number</th> -->
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>

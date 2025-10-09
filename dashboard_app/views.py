@@ -819,9 +819,8 @@ def update_member(request, member_id):
 
 def show_messages(request):
     if not request.session.get('member_id'):
-        return redirect('login')
-    if not request.session.get('member_id'):
-        return redirect('login')
+        return redirect('login')    
+    
     messages_1 = (
         Message.objects
         .select_related("group", "sender")  # performs LEFT JOINs efficiently
@@ -829,6 +828,7 @@ def show_messages(request):
             "id",
             "text_body",
             "status",
+            "media_url",
             "group__name",
             "group__platform",
             "sender__full_name",
@@ -838,19 +838,31 @@ def show_messages(request):
     )
 
     # Convert rows into a list of dicts for easy template rendering
-    messages_final = [
-        {
+    messages_final = []
+    for m in messages_1:
+        try:
+            # Parse media_url safely
+            if isinstance(m["media_url"], str) and m["media_url"]:
+                media_url = ast.literal_eval(m["media_url"])
+            elif isinstance(m["media_url"], list):
+                media_url = m["media_url"]
+            else:
+                media_url = []
+        except Exception:
+            media_url = []
+
+        messages_final.append({
             "id": m["id"],
-            "message": m["text_body"],
-            "status": m["status"],
-            "group_name": m["group__name"],
-            "platform": m["group__platform"],
-            "sender_name": m["sender__full_name"],
-            "phone_number": m["sender__phone_number"],
-            "group_status": m["group__status"]
-        }
-        for m in messages_1
-    ]
+            "message": m.get("text_body", ""),
+            "media_url": media_url,
+            "status": m.get("status"),
+            "group_name": m.get("group__name"),
+            "platform": m.get("group__platform"),
+            "sender_name": m.get("sender__full_name"),
+            "phone_number": m.get("sender__phone_number"),
+            "group_status": m.get("group__status"),
+            "MEDIA_URL": settings.MEDIA_URL,
+        })
     messages_final = sorted(messages_final, key=lambda x: x['id'], reverse=True)  # Sort by id in ascending order
     print("final Message-------------------",messages_final)
     return render(request, 'data_table_message.html' , {'messages_final': messages_final})
@@ -969,7 +981,7 @@ def delete_message(request, message_id):
 
     #GroupMemberships.objects.filter(member=member).update(status=1)
 
-    messages.success(request, f" Message delete successfully.")
+    messages.warning(request, "Message deleted successfully.")
     return redirect('show_messages')
 
 
@@ -984,7 +996,7 @@ def edit_message(request, message_id):
     media_urls = []
 
     try:
-        # Safely convert string to Python list (if stored as string)
+        # Convert string to Python list (if stored as string)
         media_list = ast.literal_eval(media_url_str) if media_url_str else []
 
         # Convert full paths to relative paths for MEDIA_URL
@@ -1059,17 +1071,16 @@ def login(request):
             print(user.full_name)
         except Member.DoesNotExist:
             # Check if user exists but is deleted
-            if Member.objects.filter(username=username, phone_number=phone_no, status=5).exists():
-                messages.warning(request, "User is Deleted.")
-                return redirect('login')
-            # Check if user exists but is inactive
-            elif Member.objects.filter(username=username, phone_number=phone_no, status=0).exists():
-                messages.warning(request, "User is Inactive.")
-                return redirect('login')
-            else:
-                # User does not exist at all
-                messages.warning(request, "Invalid username or phone number.")
-                return redirect('login')
+            # if Member.objects.filter(username=username, phone_number=phone_no, status=5).exists():
+            #     messages.warning(request, "Invalid username or phone number..")
+            #     return redirect('login')
+            # # Check if user exists but is inactive
+            # elif Member.objects.filter(username=username, phone_number=phone_no, status=0).exists():
+            #     messages.warning(request, "Invalid username or phone number.")
+            #     return redirect('login')
+            # User does not exist at all
+            messages.warning(request, "Invalid username or phone number.")
+            return redirect('login')
 
             
 
