@@ -30,6 +30,6 @@ urlpatterns = [
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),
     path('data_table_group/', views.show_data_table_group, name='data_table_group'),
-    path('show_data_table_group_test/', views.show_data_table_group_test, name='show_data_table_group_test'),
+    #path('show_data_table_group_test/', views.show_data_table_group_test, name='show_data_table_group_test'),
 
 ]

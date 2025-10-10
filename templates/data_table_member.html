@@ -46,50 +46,23 @@
               </div> -->
               <!-- /.card-header -->
               <div class="card-body">
-                <table id="example1" class="table table-bordered table-striped">
+                <table id="groupTable" class="table table-bordered table-striped">
                   <thead>
                   <tr>
                     <th>Name</th>
-                    <th>Groups</th>
                     <th>Phone</th>
+                    <th>Groups</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
                   </thead>
                   <tbody>
-                  {% for member in members %}
-                    {% if member.status != 5 and member.platforms %}
-                    <tr>
-                      <td>{{ member.full_name }}</td>
-                      <td>
-                        {% for group in member.platforms %}
-                          <span class="badge bg-primary" style="font-size: 14px;">{{ group }}</span>
-                          {% if forloop.counter|divisibleby:6 %}
-                            <br>
-                          {% endif %}
-                        {% endfor %}
-                      </td>
-                      <td>{{ member.phone_number }}</td>
-                      <td>
-                        {% if member.status == 1 %}
-                          <a href="/deactivate_member/{{ member.id }}" class="btn btn-success btn-sm">Active</a>
-                        {% elif member.status == 0 %}
-                          <a href="/activate_member/{{ member.id }}" class="btn btn-danger btn-sm">Inactive</a>
-                        {% endif %}
-                      </td>
-                      <td>
-                        <a href="/edit_member/{{ member.id }}" class="btn btn-warning btn-sm">Edit</a>
-                        <a href="/delete_member/{{ member.id }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to Delete this Member?');">Delete</a>
-                      </td>
-                    </tr>
-                    {% endif %}
-                  {% endfor %}
                   </tbody>
                   <tfoot>
                   <tr>
                     <th>Name</th>
-                    <th>Groups</th>
                     <th>Phone</th>
+                    <th>Groups</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -147,7 +120,7 @@
 <script src="../../static/dist/js/demo.js"></script>
 <!-- Page specific script -->
 
-<script>
+<!-- <script>
 $(document).ready(function () {
     var table1 = $("#example1").DataTable({
         responsive: true,
@@ -173,6 +146,62 @@ $(document).ready(function () {
         table1.page('first').draw();
     });
 
+});
+</script> -->
+
+<script>
+$(document).ready(function() {
+    var table1 = $('#groupTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{% url 'show_members' %}",
+            type: "GET",
+        },
+        columns: [
+            { data: "full_name" },
+            { data: "phone_number" },
+            { data: "groups" },
+            {  
+              data: "status",
+              render: function(data, type, row, meta) {
+                  if(type === 'display') { // only render buttons in table cells
+                      if (data === 1) {
+                          return `<a href="/deactivate_member/${row.id}" class="btn btn-success btn-sm">Active</a>`;
+                      } else if (data === 0) {
+                          return `<a href="/activate_member/${row.id}" class="btn btn-danger btn-sm">Inactive</a>`;
+                      } else {
+                          return `<span class="badge bg-secondary">Unknown</span>`;
+                      }
+                  }
+                  // For sorting and searching, return the text
+                  return data === 1 ? 'Active' : data === 0 ? 'Inactive' : 'Unknown';
+              }
+            },
+            {
+                data: "id",
+                render: function(data, type, row) {
+                    return `
+                        <a href="/edit_member/${data}" class="btn btn-warning btn-sm">Edit</a>
+                        <a href="/delete_member/${data}" class="btn btn-danger btn-sm"
+                           onclick="return confirm('Are you sure you want to Delete this group?');">Delete</a>
+                    `;
+                },
+                orderable: false,
+                searchable: false
+            }
+        ],
+        order: [],
+    });
+    var originalData = table1.rows().data().toArray();
+    // Reset button functionality
+    $('#resetTable').on('click', function () {
+        table1.clear();               // clear current table
+        table1.rows.add(originalData); // re-add in original backend order
+        table1.search('').columns().search('');
+        table1.order([]);             // remove DataTables sorting
+        table1.page('first').draw();
+    });
 });
 </script>
 

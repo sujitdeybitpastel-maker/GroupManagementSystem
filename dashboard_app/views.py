@@ -17,7 +17,7 @@ from collections import defaultdict
 import os
 from django.conf import settings
 from django.http import JsonResponse
-
+from django.contrib.postgres.aggregates import ArrayAgg
 # Create your views here.
 def index(request):
     if not request.session.get('member_id'):
@@ -322,39 +322,90 @@ def add_member(request):
     }
     return render(request, "add_member.html", context)
 
+
+
 def show_members(request):
+    # Ensure user is logged in
     if not request.session.get('member_id'):
         return redirect('login')
-    memberships = GroupMemberships.objects.select_related('member', 'group') \
-    .exclude(status=5)
 
+    # Handle AJAX (DataTables) request
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        draw = int(request.GET.get('draw', 1))
+        start = int(request.GET.get('start', 0))
+        length = int(request.GET.get('length', 10))
+        search_value = request.GET.get('search[value]', '').strip()
 
-    # Collect all group names per member
-    member_groups = defaultdict(list)
-    for gm in memberships:
-        if gm.group.status == 5:
-            member_groups[gm.member.id].append("Group is deleted")
+        # --- Base queryset ---
+        queryset = (
+            GroupMemberships.objects
+            .select_related('member', 'group')
+            .exclude(status=5)
+            .exclude(member__status=5)
+            
+            .values(
+                'member__id',
+                'member__full_name',
+                'member__phone_number',
+                'member__status'
+            )
+            .annotate(
+                group_names=ArrayAgg('group__name', distinct=True)
+            )
+        )
+
+        # --- Searching ---
+        if search_value:
+            queryset = queryset.filter(
+                Q(member__full_name__icontains=search_value) |
+                Q(member__phone_number__icontains=search_value) |
+                Q(group_names__icontains=search_value)
+            )
+
+        # --- Ordering ---
+        order_column_index = request.GET.get('order[0][column]', '0')
+        order_dir = request.GET.get('order[0][dir]', 'asc')
+
+        columns = ['member__full_name', 'member__phone_number', 'group_names', 'member__status']
+        if order_column_index.isdigit() and int(order_column_index) < len(columns):
+            order_column = columns[int(order_column_index)]
         else:
-            member_groups[gm.member.id].append(gm.group.name)
+            order_column = 'member__id'
 
-    # Prepare final members list
-    members = []
-    for gm in memberships:
-        member_id = gm.member.id
-        if not any(m['id'] == member_id for m in members):
-            members.append({
-                "id": member_id,
-                "full_name": gm.member.full_name,
-                "phone_number": gm.member.phone_number,
-                "status": gm.member.status,
-                "platforms": member_groups[member_id]
-            })
+        if order_dir == 'desc':
+            order_column = '-' + order_column
 
-    print("---------members_for_ui---------", members)
+        queryset = queryset.order_by(order_column)
+
+        # --- Pagination ---
+        paginated_queryset = queryset[start:start + length]
+
+        # --- Prepare data for DataTables ---
+        data = [
+            {
+                "id": m['member__id'],
+                "full_name": m['member__full_name'],
+                "phone_number": m['member__phone_number'],
+                "status": m['member__status'],
+                "groups": ', '.join(m['group_names']) if m['group_names'] else "—",
+            }
+            for m in paginated_queryset
+        ]
+
+        # --- DataTables response ---
+        response = {
+            "draw": draw,
+            "recordsTotal": Member.objects.exclude(status=5).count(),
+            "recordsFiltered": queryset.count(),
+            "data": data,
+        }
+
+        return JsonResponse(response)
+
+    # If not AJAX → render the template
+    return render(request, 'data_table_member.html')
 
 
-    members = sorted(members, key=lambda x: x["id"], reverse=True)
-    return render(request, "data_table_member.html", {"members": members})
 
 def activate_member(request, member_id):
     if not request.session.get('member_id'):
@@ -1155,7 +1206,7 @@ def show_data_table_group(request): # Chanege the function name show_data_table_
         order_column_index = int(request.GET.get('order[0][column]', -1))
         order_dir = request.GET.get('order[0][dir]', 'desc')
 
-        print("---------ordera-dir", order_column_index)
+        #print("---------ordera-dir", order_column_index)
 
         # DataTables sends columns as list indexes
         columns = ['name', 'platform', 'group_type', 'status']
