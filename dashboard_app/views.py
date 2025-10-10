@@ -16,6 +16,7 @@ import ast
 from collections import defaultdict
 import os
 from django.conf import settings
+from django.http import JsonResponse
 
 # Create your views here.
 def index(request):
@@ -324,7 +325,7 @@ def add_member(request):
 def show_members(request):
     if not request.session.get('member_id'):
         return redirect('login')
-    memberships = memberships = GroupMemberships.objects.select_related('member', 'group') \
+    memberships = GroupMemberships.objects.select_related('member', 'group') \
     .exclude(status=5)
 
 
@@ -1100,28 +1101,28 @@ def logout(request):
     auth.logout(request)
     return render(request, 'login.html')
 
-def show_data_table_group(request):
-    if not request.session.get('member_id'):
-        return redirect('login')
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT id, name, platform, group_type, added_time, status FROM dashboard_app_group where status != 5")
-        rows = cursor.fetchall()
+# def show_data_table_group(request):
+#     if not request.session.get('member_id'):
+#         return redirect('login')
+#     with connection.cursor() as cursor:
+#         cursor.execute("SELECT id, name, platform, group_type, added_time, status FROM dashboard_app_group where status != 5")
+#         rows = cursor.fetchall()
 
-    groups = [
-        {
-            "id": row[0],
-            "name": row[1],
-            "platform": row[2],
-            "group_type": row[3],
-            "added_time": row[4],
-            "status": row[5],
-        }
-        for row in rows
-    ]
-    #print("----------------------------", groups)
-    groups = sorted(groups, key=lambda x: x['id'], reverse=True)
-    #print("----------------------------", groups)
-    return render(request, 'data_table_group.html', {'groups': groups})
+#     groups = [
+#         {
+#             "id": row[0],
+#             "name": row[1],
+#             "platform": row[2],
+#             "group_type": row[3],
+#             "added_time": row[4],
+#             "status": row[5],
+#         }
+#         for row in rows
+#     ]
+#     #print("----------------------------", groups)
+#     groups = sorted(groups, key=lambda x: x['id'], reverse=True)
+#     #print("----------------------------", groups)
+#     return render(request, 'data_table_group.html', {'groups': groups})
 
 def activate_group(request, group_id):
     if not request.session.get('member_id'):
@@ -1140,3 +1141,80 @@ def deactivate_group(request, group_id):
     group.save()
     messages.success(request, f"{group.name} Deativated successfully.")
     return redirect('data_table_group')
+
+def show_data_table_group(request): # Chanege the function name show_data_table_group_test for testing the data.
+    if not request.session.get('member_id'):
+        return redirect('login')
+
+    # Handle DataTables AJAX request
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        draw = int(request.GET.get('draw', 1))
+        start = int(request.GET.get('start', 0))
+        length = int(request.GET.get('length', 20))
+        search_value = request.GET.get('search[value]', '')
+        order_column_index = int(request.GET.get('order[0][column]', -1))
+        order_dir = request.GET.get('order[0][dir]', 'desc')
+
+        print("---------ordera-dir", order_column_index)
+
+        # DataTables sends columns as list indexes
+        columns = ['name', 'platform', 'group_type', 'status']
+        if 0 <= order_column_index < len(columns):
+            order_column = columns[order_column_index]
+        else:
+            order_column = 'id'
+
+        # Base queryset (exclude status = 5)
+        queryset = Group.objects.exclude(status=5)
+
+        # Search filter
+        if search_value:
+            queryset = queryset.filter(
+                Q(name__icontains=search_value) |
+                Q(platform__icontains=search_value) |
+                Q(group_type__icontains=search_value)|
+                Q(status__icontains=search_value)
+            )
+
+        # Record counts
+        total_records = Group.objects.exclude(status=5).count()
+        total_filtered = queryset.count()
+
+        # Sorting logic
+        if order_column_index == -1:
+            # No column clicked → default sort by id/added_time descending
+            queryset = queryset.order_by('-id')
+        else:
+            # User clicked column → alphabetical sorting
+            if order_dir == 'desc':
+                queryset = queryset.order_by(f'-{order_column}')
+            else:
+                queryset = queryset.order_by(order_column)
+
+        # Pagination
+        queryset = queryset[start:start + length]
+
+        # Serialize for DataTables
+        data = [
+            {
+                "id": g.id,
+                "name": g.name,
+                "platform": g.platform,
+                "group_type": g.group_type,
+                "added_time": g.added_time.strftime("%Y-%m-%d %H:%M:%S") if g.added_time else "",
+                "status": g.status,
+            }
+            for g in queryset
+        ]
+        #data = sorted(data, key=lambda x: x['id'], reverse=True)
+        # DataTables response format
+        return JsonResponse({
+            "draw": draw,
+            "recordsTotal": total_records,
+            "recordsFiltered": total_filtered,
+            "data": data,
+        })
+
+    # Render HTML page normally
+    return render(request, 'data_table_group.html') # Add the html name data_table_group_test.html for testing puspose.
+

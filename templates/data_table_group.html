@@ -46,7 +46,7 @@
               </div> -->
               <!-- /.card-header -->
               <div class="card-body">
-                <table id="example1" class="table table-bordered table-striped">
+                <table id="groupTable" class="table table-bordered table-striped">
                   <thead>
                   <tr>
                     <th>Name</th>
@@ -57,26 +57,6 @@
                   </tr>
                   </thead>
                   <tbody>
-                  {% for group in groups %}
-                    {% if group.status != 5 %}
-                    <tr>
-                      <td>{{ group.name }}</td>
-                      <td>{{ group.platform }}</td>
-                      <td>{{ group.group_type }}</td>
-                      <td>
-                        {% if group.status == 1 %}
-                          <a href="/deactivate_group/{{ group.id }}" class="btn btn-success btn-sm">Active</a>
-                        {% elif group.status == 0 %}
-                          <a href="/activate_group/{{ group.id }}" class="btn btn-danger btn-sm">Inactive</a>
-                        {% endif %}
-                      </td>
-                      <td>
-                        <a href="/edit_group/{{ group.id }}" class="btn btn-warning btn-sm">Edit</a>
-                        <a href="/delete_group/{{ group.id }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to Delete this group?');">Delete</a>
-                      </td>
-                    </tr>
-                    {% endif %}
-                  {% endfor %}
                   </tbody>
                   <tfoot>
                   <tr>
@@ -140,7 +120,7 @@
 <script src="../../static/dist/js/demo.js"></script>
 <!-- Page specific script -->
 
-<script>
+<!-- <script>
 $(document).ready(function () {
     var table1 = $("#example1").DataTable({
         responsive: true,
@@ -157,6 +137,64 @@ $(document).ready(function () {
     //Capture the initial DOM order (as Django rendered it)
     var originalData = table1.rows().data().toArray();
 
+    // Reset button functionality
+    $('#resetTable').on('click', function () {
+        table1.clear();               // clear current table
+        table1.rows.add(originalData); // re-add in original backend order
+        table1.search('').columns().search('');
+        table1.order([]);             // remove DataTables sorting
+        table1.page('first').draw();
+    });
+});
+</script> -->
+
+<!-- <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script> -->
+<script>
+$(document).ready(function() {
+    var table1 = $('#groupTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{% url 'data_table_group' %}",
+            type: "GET",
+        },
+        columns: [
+            { data: "name" },
+            { data: "platform" },
+            { data: "group_type" },
+            {  
+              data: "status",
+              render: function(data, type, row, meta) {
+                  if(type === 'display') { // only render buttons in table cells
+                      if (data === 1) {
+                          return `<a href="/deactivate_group/${row.id}" class="btn btn-success btn-sm">Active</a>`;
+                      } else if (data === 0) {
+                          return `<a href="/activate_group/${row.id}" class="btn btn-danger btn-sm">Inactive</a>`;
+                      } else {
+                          return `<span class="badge bg-secondary">Unknown</span>`;
+                      }
+                  }
+                  // For sorting and searching, return the text
+                  return data === 1 ? 'Active' : data === 0 ? 'Inactive' : 'Unknown';
+              }
+            },
+            {
+                data: "id",
+                render: function(data, type, row) {
+                    return `
+                        <a href="/edit_group/${data}" class="btn btn-warning btn-sm">Edit</a>
+                        <a href="/delete_group/${data}" class="btn btn-danger btn-sm"
+                           onclick="return confirm('Are you sure you want to Delete this group?');">Delete</a>
+                    `;
+                },
+                orderable: false,
+                searchable: false
+            }
+        ],
+        order: [],
+    });
+    var originalData = table1.rows().data().toArray();
     // Reset button functionality
     $('#resetTable').on('click', function () {
         table1.clear();               // clear current table
