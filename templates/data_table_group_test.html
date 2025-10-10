@@ -1,0 +1,46 @@
+<button id="resetTable" class="btn btn-secondary">
+    <i class="fas fa-sync-alt"></i> Reset
+</button>
+
+<table id="groupTable" class="display" style="width:100%">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Platform</th>
+            <th>Group Type</th>
+            <th>Added Time</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize the DataTable and save it to a variable
+    var table1 = $('#groupTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: "{% url 'show_data_table_group_test' %}",
+        columns: [
+            { data: "name" },
+            { data: "platform" },
+            { data: "group_type" },
+            { data: "added_time" },
+            { data: "status" }
+        ],
+        order: [[4, 'desc']],  // default order by id/added_time descending
+    });
+
+
+    // Reset button: clears filters, search, and restores backend default order
+    $('#resetTable').on('click', function () {
+        table1.search('').columns().search(''); // clear global & column search
+        table1.order([[4, 'desc']]);            // reset default backend order
+        table1.page('first');                   // go to first page
+        table1.ajax.reload(null, false);        // reload from backend
+    });
+});
+</script>
